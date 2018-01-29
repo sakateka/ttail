@@ -42,6 +42,7 @@ func main() {
 	tLayout := "2006-01-02T15:04:05"
 
 	var file *os.File
+	var fileInfo os.FileInfo
 	var err error
 	for _, fname := range flag.Args() {
 		if file != nil {
@@ -50,22 +51,17 @@ func main() {
 		}
 		log.Debugf("[main]: process file %s", fname)
 
-		_, err = os.Stat(fname)
-		if os.IsNotExist(err) {
-			log.Debugf("[main]: skip %s: %s", fname, err)
+		fileInfo, err = os.Stat(fname)
+		if err != nil {
+			log.Errorf("[main]: file stat %s: %s", fname, err)
+			continue
+		} else if fileInfo.IsDir() {
+			log.Errorf("[main]: skip directory %s!", fname)
 			continue
 		}
 		file, err = os.Open(fname)
 		if err != nil {
-			log.Debugf("[main]: skip %s: %s", fname, err)
-			continue
-		}
-		fileInfo, err := file.Stat()
-		if err != nil {
-			log.Debugf("[main]: file stat %s: %s", fname, err)
-			continue
-		} else if fileInfo.IsDir() {
-			log.Debugf("[main]: skip directory %s!", fname)
+			log.Errorf("[main]: skip %s: %s", fname, err)
 			continue
 		}
 		tfile := ttail.NewTimeFile(re, tLayout, file)
