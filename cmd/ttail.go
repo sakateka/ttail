@@ -41,15 +41,21 @@ func main() {
 	re := regexp.MustCompile(`\ttimestamp=(\d{4}-\d{2}-\d{2}T\d\d:\d\d:\d\d)\t`)
 	tLayout := "2006-01-02T15:04:05"
 
+	var file *os.File
+	var err error
 	for _, fname := range flag.Args() {
+		if file != nil {
+			file.Close()
+			file = nil
+		}
 		log.Debugf("[main]: process file %s", fname)
 
-		_, err := os.Stat(fname)
+		_, err = os.Stat(fname)
 		if os.IsNotExist(err) {
 			log.Debugf("[main]: skip %s: %s", fname, err)
 			continue
 		}
-		file, err := os.Open(fname)
+		file, err = os.Open(fname)
 		if err != nil {
 			log.Debugf("[main]: skip %s: %s", fname, err)
 			continue
@@ -60,7 +66,6 @@ func main() {
 			continue
 		} else if fileInfo.IsDir() {
 			log.Debugf("[main]: skip directory %s!", fname)
-			_ = file.Close()
 			continue
 		}
 		tfile := ttail.NewTimeFile(re, tLayout, file)
