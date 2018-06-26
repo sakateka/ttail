@@ -1,4 +1,4 @@
-go build -v cmd/ttail.go || exit 1
+vgo build -v -o ttail cmd/ttail.go || exit 1
 
 FIRST=true
 TIME=${1:-10s}

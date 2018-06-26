@@ -331,3 +331,12 @@ func (t *TFile) CopyTo(w io.Writer) (int64, error) {
 	}
 	return copied, err
 }
+
+// GetReader seek current file to target offset and return it
+func (t *TFile) GetReader() (io.Reader, error) {
+	_, err := t.file.Seek(t.offset, os.SEEK_SET)
+	if err != nil {
+		return nil, err
+	}
+	return t.file, nil
+}
