@@ -7,8 +7,8 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/combaine/ttail"
 	"github.com/labstack/gommon/log"
+	"github.com/sakateka/ttail"
 )
 
 var timeFromLastLine bool
