@@ -16,6 +16,8 @@ const (
 	defaultStepsLimit       = 1024
 )
 
+var location = time.Local
+
 var (
 	// FlagDuration CopyTo last <N> log seconds
 	FlagDuration time.Duration
@@ -105,7 +107,7 @@ func (t *TFile) lastLineTime() (tm time.Time) {
 
 			if subm := t.timeRe.FindSubmatch(line); subm != nil {
 				debug("[lastLineTime]: regexp match for: %s", subm[1])
-				tm, _ = time.ParseInLocation(t.timeLayout, string(subm[1]), time.Local)
+				tm, _ = time.ParseInLocation(t.timeLayout, string(subm[1]), location)
 				if !tm.IsZero() {
 					t.offset = offset
 					debug("[lastLineTime]: found '%s' at %d", tm.Format(t.timeLayout), offset)
@@ -214,7 +216,7 @@ func (t *TFile) findTime() (*time.Time, error) {
 
 		if subm := t.timeRe.FindSubmatch(line); subm != nil {
 			debug("[findTime]: regexp match for: %s", subm[1])
-			tm, err = time.ParseInLocation(t.timeLayout, string(subm[1]), time.Local)
+			tm, err = time.ParseInLocation(t.timeLayout, string(subm[1]), location)
 			if err == nil {
 				return &tm, nil
 			}
@@ -245,7 +247,7 @@ func (t *TFile) preciseFindTime() error {
 
 		if subm := t.timeRe.FindSubmatch(line); subm != nil {
 			debug("[preciseFindTime]: parse as time: %s", subm[1])
-			tm, err = time.ParseInLocation(t.timeLayout, string(subm[1]), time.Local)
+			tm, err = time.ParseInLocation(t.timeLayout, string(subm[1]), location)
 			if err != nil {
 				debug("[preciseFindTime]: parse time error: %s", err)
 				err = nil
@@ -339,4 +341,14 @@ func (t *TFile) GetReader() (io.Reader, error) {
 		return nil, err
 	}
 	return t.file, nil
+}
+
+// SetLocation set log time location
+func SetLocation(name string) error {
+	loc, err := time.LoadLocation(name)
+	if err != nil {
+		return err
+	}
+	location = loc
+	return nil
 }
