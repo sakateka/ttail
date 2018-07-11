@@ -140,11 +140,12 @@ func (t *TFile) readLine() ([]byte, error) {
 			t.offset = offset
 			debug("[readLine]: <for> read from %d", offset)
 			n, err := t.file.ReadAt(t.buf.b[t.buf.lineEnd:], offset)
-			debug("[readLine]: <for> read n=%d bytes", n)
-			if err != nil {
-				if err != io.EOF || n <= 0 {
-					err = errors.Wrap(err, "[readLine] <for>")
+			debug("[readLine]: <for> read n=%d bytes (err = %s)", n, err)
+			if err != io.EOF || n <= 0 {
+				if err == nil {
+					err = io.EOF
 				}
+				err = errors.Wrap(err, "[readLine] <for>")
 			}
 			t.buf.b = t.buf.b[:t.buf.lineEnd+n]
 			t.buf.discard = false
