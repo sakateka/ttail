@@ -22,12 +22,9 @@ func init() {
 		_, _ = os.Stderr.WriteString("Usage of " + os.Args[0] + " [options] file [file ...]:\n")
 		flag.PrintDefaults()
 	}
-	flag.DurationVar(&ttail.FlagDuration, "num", 10*time.Second, "offset in time to start copy")
 	flag.DurationVar(&ttail.FlagDuration, "n", 10*time.Second, "offset in time to start copy (shorthand)")
 	flag.BoolVar(&timeFromLastLine, "l", false, "tail last N secconds from time in last line (default from time.Now())")
-	flag.BoolVar(&timeFromLastLine, "last", false, "tail last N secconds from time in last line (default from time.Now())")
 	flag.BoolVar(&ttail.FlagDebug, "d", false, "Debug mode")
-	flag.BoolVar(&ttail.FlagDebug, "debug", false, "Debug mode")
 }
 
 func main() {
