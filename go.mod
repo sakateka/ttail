@@ -5,6 +5,10 @@ require (
 	github.com/mattn/go-colorable v0.0.9
 	github.com/mattn/go-isatty v0.0.3
 	github.com/pkg/errors v0.8.0
+	github.com/stretchr/testify v1.3.0 // indirect
 	github.com/valyala/bytebufferpool v0.0.0-20160817181652-e746df99fe4a
 	github.com/valyala/fasttemplate v0.0.0-20170224212429-dcecefd839c4
+	go.uber.org/atomic v1.4.0 // indirect
+	go.uber.org/multierr v1.1.0 // indirect
+	go.uber.org/zap v1.10.0
 )

@@ -7,10 +7,14 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/labstack/gommon/log"
+	stdLog "log"
+
 	"github.com/sakateka/ttail"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
+var log *zap.Logger
 var timeFromLastLine bool
 
 func init() {
@@ -32,9 +36,16 @@ func main() {
 		flag.Usage()
 		os.Exit(1)
 	}
+
+	cfg := zap.NewProductionConfig()
+	cfg.Level.SetLevel(zapcore.ErrorLevel)
 	if ttail.FlagDebug {
-		log.SetOutput(os.Stderr)
-		log.SetLevel(log.DEBUG)
+		cfg.Level.SetLevel(zapcore.DebugLevel)
+	}
+	var err error
+	log, err = cfg.Build()
+	if err != nil {
+		stdLog.Fatalf("can't initialize zap logger: %v", err)
 	}
 
 	// TODO: regexp and timeLayout from config. (and flags?)
@@ -43,34 +54,33 @@ func main() {
 
 	var file *os.File
 	var fileInfo os.FileInfo
-	var err error
 	for _, fname := range flag.Args() {
 		if file != nil {
 			file.Close()
 			file = nil
 		}
-		log.Debugf("[main]: process file %s", fname)
+		log.Debug("[main]: process file", zap.String("fileName", fname))
 
 		fileInfo, err = os.Stat(fname)
 		if err != nil {
-			log.Errorf("[main]: file stat %s: %s", fname, err)
+			log.Error("[main]: file stat", zap.String("logname", fname), zap.Error(err))
 			continue
 		} else if fileInfo.IsDir() {
-			log.Errorf("[main]: skip directory %s!", fname)
+			log.Error("[main]: skip directory!", zap.String("name", fname))
 			continue
 		}
 		file, err = os.Open(fname)
 		if err != nil {
-			log.Errorf("[main]: skip %s: %s", fname, err)
+			log.Error("[main]: skip", zap.String("logname", fname), zap.Error(err))
 			continue
 		}
 		tfile := ttail.NewTimeFile(re, tLayout, file)
 
 		if err := tfile.FindPosition(timeFromLastLine); err != nil {
 			if err != io.EOF {
-				log.Fatalf("[main]: error: %s", err)
+				log.Fatal("[main]: error", zap.Error(err))
 			}
-			log.Debugf("[main]: findPosition got EOF")
+			log.Debug("[main]: findPosition got EOF")
 			return
 		}
 		_, _ = tfile.CopyTo(os.Stdout)

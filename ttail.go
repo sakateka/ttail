@@ -207,7 +207,6 @@ func (t *TFile) findTime() (*time.Time, error) {
 	)
 	line, err = t.readLine()
 	for err == nil {
-
 		lineLen := len(line)
 		if lineLen == 0 {
 			debug("[findTime]: read junk continue from: %s", t.offset)
@@ -244,8 +243,7 @@ func (t *TFile) preciseFindTime() error {
 			t.offset += int64(t.buf.lineEnd)
 			line, err = t.readLine()
 		}
-		debug("[preciseFindTime]: nextLine[%d:%d] offset=%d",
-			t.buf.lineStart, t.buf.lineEnd, t.offset)
+		debug("[preciseFindTime]: nextLine[%d:%d] offset=%d", t.buf.lineStart, t.buf.lineEnd, t.offset)
 
 		if subm := t.timeRe.FindSubmatch(line); subm != nil {
 			debug("[preciseFindTime]: parse as time: %s", subm[1])
