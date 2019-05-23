@@ -5,25 +5,13 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"regexp"
 	"time"
 
 	"github.com/pkg/errors"
 )
 
-const (
-	defaultBufSize    int64 = 1 << 14 // 16kb
-	defaultStepsLimit       = 1024
-)
-
-var location = time.Local
-
-var (
-	// FlagDuration CopyTo last <N> log seconds
-	FlagDuration time.Duration
-	// FlagDebug enable debug output
-	FlagDebug bool
-)
+// FlagDebug enable debug output
+var FlagDebug bool
 
 type bufType struct {
 	b         []byte
@@ -42,22 +30,26 @@ func (b *bufType) reset() {
 // where binary search may be used
 // currently this restriction not checked :-/
 type TFile struct {
-	file       *os.File
-	timeRe     *regexp.Regexp
-	fromTime   time.Time
-	offset     int64
-	size       int64
-	timeLayout string
-	buf        bufType
+	opts     options
+	file     *os.File
+	fromTime time.Time
+	offset   int64
+	size     int64
+	buf      bufType
 }
 
-// NewTimeFile create new time searcher
-func NewTimeFile(re *regexp.Regexp, layout string, f *os.File) *TFile {
+// NewTimeFile create new time searcher configured by options
+func NewTimeFile(f *os.File, opt ...TimeFileOptions) *TFile {
+	tFileOptions := defaultOptions
+	for _, o := range opt {
+		o(&tFileOptions)
+	}
+
 	return &TFile{
-		timeRe:     re,
-		timeLayout: layout,
-		buf:        bufType{b: make([]byte, defaultBufSize)},
-		file:       f,
+		opts:     tFileOptions,
+		file:     f,
+		fromTime: time.Now(),
+		buf:      bufType{b: make([]byte, tFileOptions.bufSize)},
 	}
 
 }
@@ -69,14 +61,14 @@ func debug(format string, args ...interface{}) {
 }
 
 func (t *TFile) lastLineTime() (tm time.Time) {
-	offset := t.offset - defaultBufSize
+	offset := t.offset - t.opts.bufSize
 	if offset < 0 {
 		offset = 0
 	}
 
-	for step := defaultStepsLimit; offset >= 0; offset -= defaultBufSize {
+	for step := t.opts.stepsLimit; offset >= 0; offset -= t.opts.bufSize {
 		if step--; step < 0 {
-			debug("[lastLineTime]: attempts to read = %d, stop", defaultStepsLimit)
+			debug("[lastLineTime]: attempts to read = %d, stop", t.opts.stepsLimit)
 			return
 		}
 		count, err := t.file.ReadAt(t.buf.b, offset)
@@ -105,20 +97,20 @@ func (t *TFile) lastLineTime() (tm time.Time) {
 			line = t.buf.b[t.buf.lineStart:t.buf.lineEnd]
 			debug("[lastLineTime]: search in: %s", line)
 
-			if subm := t.timeRe.FindSubmatch(line); subm != nil {
+			if subm := t.opts.timeRe.FindSubmatch(line); subm != nil {
 				debug("[lastLineTime]: regexp match for: %s", subm[1])
-				tm, _ = time.ParseInLocation(t.timeLayout, string(subm[1]), location)
+				tm, _ = time.ParseInLocation(t.opts.timeLayout, string(subm[1]), t.opts.location)
 				if !tm.IsZero() {
 					t.offset = offset
-					debug("[lastLineTime]: found '%s' at %d", tm.Format(t.timeLayout), offset)
+					debug("[lastLineTime]: found '%s' at %d", tm.Format(t.opts.timeLayout), offset)
 					return tm
 				}
 			}
 		}
 		// if from origin of file left less then
-		// defaultBufSize bytes read from origin
-		if offset > 0 && offset < defaultBufSize {
-			offset = defaultBufSize
+		// t.opts.bufSize bytes read from origin
+		if offset > 0 && offset < t.opts.bufSize {
+			offset = t.opts.bufSize
 		}
 		debug("[lastLineTime]: offset=%d", offset)
 	}
@@ -126,7 +118,7 @@ func (t *TFile) lastLineTime() (tm time.Time) {
 }
 
 func (t *TFile) readLine() ([]byte, error) {
-	t.buf.b = t.buf.b[:defaultBufSize]
+	t.buf.b = t.buf.b[:t.opts.bufSize]
 	// See comment in for loop
 	t.buf.lineStart = -1
 	// lineEnd must be zeroed
@@ -172,14 +164,14 @@ func (t *TFile) readLine() ([]byte, error) {
 		}
 		t.buf.lineEnd = len(t.buf.b)
 		// '\n' not found and cursor is -1
-		if int64(t.buf.lineEnd) >= defaultBufSize*4 {
+		if int64(t.buf.lineEnd) >= t.opts.bufSize*4 {
 			t.buf.lineStart = 0
 			t.buf.lineEnd = 0
 			break
 		}
 
 		// extend buffer
-		t.buf.b = append(t.buf.b, make([]byte, defaultBufSize)...)
+		t.buf.b = append(t.buf.b, make([]byte, t.opts.bufSize)...)
 	}
 	return t.buf.b[t.buf.lineStart:t.buf.lineEnd], nil
 }
@@ -215,9 +207,9 @@ func (t *TFile) findTime() (*time.Time, error) {
 		}
 		debug("[findTime]: in: %s", line)
 
-		if subm := t.timeRe.FindSubmatch(line); subm != nil {
+		if subm := t.opts.timeRe.FindSubmatch(line); subm != nil {
 			debug("[findTime]: regexp match for: %s", subm[1])
-			tm, err = time.ParseInLocation(t.timeLayout, string(subm[1]), location)
+			tm, err = time.ParseInLocation(t.opts.timeLayout, string(subm[1]), t.opts.location)
 			if err == nil {
 				return &tm, nil
 			}
@@ -245,15 +237,15 @@ func (t *TFile) preciseFindTime() error {
 		}
 		debug("[preciseFindTime]: nextLine[%d:%d] offset=%d", t.buf.lineStart, t.buf.lineEnd, t.offset)
 
-		if subm := t.timeRe.FindSubmatch(line); subm != nil {
+		if subm := t.opts.timeRe.FindSubmatch(line); subm != nil {
 			debug("[preciseFindTime]: parse as time: %s", subm[1])
-			tm, err = time.ParseInLocation(t.timeLayout, string(subm[1]), location)
+			tm, err = time.ParseInLocation(t.opts.timeLayout, string(subm[1]), t.opts.location)
 			if err != nil {
 				debug("[preciseFindTime]: parse time error: %s", err)
 				err = nil
 				continue
 			}
-			if t.fromTime.Sub(tm) /* actual duration */ <= FlagDuration {
+			if t.fromTime.Sub(tm) /* actual duration */ <= t.opts.duration {
 				debug("[preciseFindTime]: found line: %s, offset=%d", tm, t.offset)
 				break
 			}
@@ -265,7 +257,7 @@ func (t *TFile) preciseFindTime() error {
 // FindPosition search file offset in log file
 // where time is time.now() - <tail N seconds>
 // or lastLineTime() - <tail N seconds>
-func (t *TFile) FindPosition(timeFromLastLine bool) error {
+func (t *TFile) FindPosition() error {
 	var (
 		at  *time.Time
 		err error
@@ -279,8 +271,7 @@ func (t *TFile) FindPosition(timeFromLastLine bool) error {
 	if err != nil {
 		return err
 	}
-	t.fromTime = time.Now()
-	if timeFromLastLine {
+	if t.opts.timeFromLastLine {
 		t.offset = down
 		t.fromTime = t.lastLineTime()
 		if t.fromTime.IsZero() {
@@ -292,9 +283,9 @@ func (t *TFile) FindPosition(timeFromLastLine bool) error {
 			return nil
 		}
 	}
-	debug("[FindPosition]: Use fromTime: %s", t.fromTime.Format(t.timeLayout))
+	debug("[FindPosition]: Use fromTime: %s", t.fromTime.Format(t.opts.timeLayout))
 
-	for (down - up) > defaultBufSize {
+	for (down - up) > t.opts.bufSize {
 		middle = up + (down-up)/2 // avoid overflow middle
 		t.offset = middle
 
@@ -306,7 +297,7 @@ func (t *TFile) FindPosition(timeFromLastLine bool) error {
 			}
 		}
 
-		if t.fromTime.Sub(*at) /* actual duration */ > FlagDuration {
+		if t.fromTime.Sub(*at) /* actual duration */ > t.opts.duration {
 			up = middle
 		} else {
 			down = middle
@@ -341,14 +332,4 @@ func (t *TFile) GetReader() (io.Reader, error) {
 		return nil, err
 	}
 	return t.file, nil
-}
-
-// SetLocation set log time location
-func SetLocation(name string) error {
-	loc, err := time.LoadLocation(name)
-	if err != nil {
-		return err
-	}
-	location = loc
-	return nil
 }

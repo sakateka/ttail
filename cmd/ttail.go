@@ -4,7 +4,6 @@ import (
 	"flag"
 	"io"
 	"os"
-	"regexp"
 	"time"
 
 	stdLog "log"
@@ -15,16 +14,17 @@ import (
 )
 
 var log *zap.Logger
-var timeFromLastLine bool
+var flagTimeFromLastLine bool
+var flagDuration time.Duration
 
 func init() {
 	flag.Usage = func() {
 		_, _ = os.Stderr.WriteString("Usage of " + os.Args[0] + " [options] file [file ...]:\n")
 		flag.PrintDefaults()
 	}
-	flag.DurationVar(&ttail.FlagDuration, "n", 10*time.Second, "offset in time to start copy (shorthand)")
-	flag.BoolVar(&timeFromLastLine, "l", false, "tail last N secconds from time in last line (default from time.Now())")
-	flag.BoolVar(&ttail.FlagDebug, "d", false, "Debug mode")
+	flag.DurationVar(&flagDuration, "n", 10*time.Second, "offset in time to start copy (default 10s)")
+	flag.BoolVar(&flagTimeFromLastLine, "l", false, "tail last N secconds from time in last line (default from time.Now())")
+	flag.BoolVar(&ttail.FlagDebug, "d", false, "set Debug mode")
 }
 
 func main() {
@@ -44,10 +44,6 @@ func main() {
 	if err != nil {
 		stdLog.Fatalf("can't initialize zap logger: %v", err)
 	}
-
-	// TODO: regexp and timeLayout from config. (and flags?)
-	re := regexp.MustCompile(`\ttimestamp=(\d{4}-\d{2}-\d{2}T\d\d:\d\d:\d\d)\t`)
-	tLayout := "2006-01-02T15:04:05"
 
 	var file *os.File
 	var fileInfo os.FileInfo
@@ -71,9 +67,13 @@ func main() {
 			log.Error("[main]: skip", zap.String("logname", fname), zap.Error(err))
 			continue
 		}
-		tfile := ttail.NewTimeFile(re, tLayout, file)
+		opts := []ttail.TimeFileOptions{
+			ttail.WithTimeFromLastLine(flagTimeFromLastLine),
+			ttail.WithDuration(flagDuration),
+		}
+		tfile := ttail.NewTimeFile(file, opts...)
 
-		if err := tfile.FindPosition(timeFromLastLine); err != nil {
+		if err := tfile.FindPosition(); err != nil {
 			if err != io.EOF {
 				log.Fatal("[main]: error", zap.Error(err))
 			}
