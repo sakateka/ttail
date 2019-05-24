@@ -45,6 +45,8 @@ func NewTimeFile(f *os.File, opt ...TimeFileOptions) *TFile {
 		o(&tFileOptions)
 	}
 
+	debug("NewTimeFile: with options %+v", tFileOptions)
+
 	return &TFile{
 		opts:     tFileOptions,
 		file:     f,
@@ -95,14 +97,14 @@ func (t *TFile) lastLineTime() (tm time.Time) {
 			}
 
 			line = t.buf.b[t.buf.lineStart:t.buf.lineEnd]
-			debug("[lastLineTime]: search in: %s", line)
+			debug("[lastLineTime]: search in: %q", line)
 
 			if subm := t.opts.timeRe.FindSubmatch(line); subm != nil {
 				debug("[lastLineTime]: regexp match for: %s", subm[1])
 				tm, _ = time.ParseInLocation(t.opts.timeLayout, string(subm[1]), t.opts.location)
+				debug("[lastLineTime]: found '%s' at %d", tm.Format(t.opts.timeLayout), offset)
 				if !tm.IsZero() {
 					t.offset = offset
-					debug("[lastLineTime]: found '%s' at %d", tm.Format(t.opts.timeLayout), offset)
 					return tm
 				}
 			}
@@ -213,6 +215,8 @@ func (t *TFile) findTime() (*time.Time, error) {
 			if err == nil {
 				return &tm, nil
 			}
+		} else {
+			line = line[:0]
 		}
 	}
 	if err != nil && err != io.EOF {

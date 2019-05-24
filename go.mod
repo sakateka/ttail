@@ -1,6 +1,7 @@
 module github.com/sakateka/ttail
 
 require (
+	github.com/BurntSushi/toml v0.3.1
 	github.com/labstack/gommon v0.2.8
 	github.com/mattn/go-colorable v0.1.1
 	github.com/mattn/go-isatty v0.0.7

@@ -15,6 +15,7 @@ import (
 
 var log *zap.Logger
 var flagTimeFromLastLine bool
+var flagLogType string
 var flagDuration time.Duration
 
 func init() {
@@ -24,6 +25,7 @@ func init() {
 	}
 	flag.DurationVar(&flagDuration, "n", 10*time.Second, "offset in time to start copy (default 10s)")
 	flag.BoolVar(&flagTimeFromLastLine, "l", false, "tail last N secconds from time in last line (default from time.Now())")
+	flag.StringVar(&flagLogType, "t", "", "use a type of log (default tskv)")
 	flag.BoolVar(&ttail.FlagDebug, "d", false, "set Debug mode")
 }
 
@@ -70,6 +72,13 @@ func main() {
 		opts := []ttail.TimeFileOptions{
 			ttail.WithTimeFromLastLine(flagTimeFromLastLine),
 			ttail.WithDuration(flagDuration),
+		}
+		if flagLogType != "" {
+			logOpts, err := ttail.OptionsFromConfig(flagLogType)
+			if err != nil {
+				log.Fatal("Failed to get ttail options from config", zap.Error(err))
+			}
+			opts = append(opts, logOpts...)
 		}
 		tfile := ttail.NewTimeFile(file, opts...)
 
