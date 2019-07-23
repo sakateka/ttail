@@ -87,7 +87,7 @@ func main() {
 				log.Fatal("[main]: error", zap.Error(err))
 			}
 			log.Debug("[main]: findPosition got EOF")
-			return
+			continue
 		}
 		_, _ = tfile.CopyTo(os.Stdout)
 	}
