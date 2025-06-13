@@ -139,6 +139,12 @@ func (lb *LineBuffer) NextLine() ([]byte, error) {
 	}
 
 	lb.lineStart = lb.lineEnd + 1
+
+	// Check bounds before accessing slice
+	if lb.lineStart >= len(lb.data) {
+		return nil, io.EOF
+	}
+
 	cursor := bytes.IndexByte(lb.data[lb.lineStart:], '\n')
 	if cursor > 0 {
 		lb.lineEnd = lb.lineStart + cursor

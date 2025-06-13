@@ -176,10 +176,10 @@ func TestOptionsFromConfig_Integration(t *testing.T) {
 	// Create a temporary config file
 	configContent := `
 [test_format]
-buf_size = 8192
-steps_limit = 256
-time_regex = '\ttimestamp=(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})\t'
-time_layout = "2006-01-02T15:04:05"
+bufSize = 8192
+stepsLimit = 256
+timeReStr = '\ttimestamp=(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})\t'
+timeLayout = "2006-01-02T15:04:05"
 `
 
 	tmpFile, err := os.CreateTemp("", "ttail_config_*.toml")

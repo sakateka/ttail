@@ -89,9 +89,12 @@ func TestLogType_ApplyToOptions_InvalidRegex(t *testing.T) {
 }
 
 func TestLoadConfig_NonExistentFile(t *testing.T) {
-	_, err := LoadConfig("/non/existent/file.toml")
-	if err == nil {
-		t.Errorf("expected error for non-existent file")
+	conf, err := LoadConfig("/non/existent/file.toml")
+	if err != nil {
+		t.Errorf("should not error for non-existent file, should return builtins: %v", err)
+	}
+	if len(conf) == 0 {
+		t.Errorf("should return builtin types when config file doesn't exist")
 	}
 }
 
@@ -125,15 +128,15 @@ func TestLoadConfig_WithTempFile(t *testing.T) {
 	// Create a temporary config file
 	content := `
 [apache]
-buf_size = 8192
-steps_limit = 512
-time_regex = '\[(\d{2}/\w{3}/\d{4}:\d{2}:\d{2}:\d{2})\s'
-time_layout = "02/Jan/2006:15:04:05"
+bufSize = 8192
+stepsLimit = 512
+timeReStr = '\[(\d{2}/\w{3}/\d{4}:\d{2}:\d{2}:\d{2})\s'
+timeLayout = "02/Jan/2006:15:04:05"
 
 [nginx]
-buf_size = 4096
-time_regex = '(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})'
-time_layout = "2006-01-02T15:04:05"
+bufSize = 4096
+timeReStr = '(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})'
+timeLayout = "2006-01-02T15:04:05"
 `
 
 	tmpFile, err := os.CreateTemp("", "ttail_test_*.toml")

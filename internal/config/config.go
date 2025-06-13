@@ -17,10 +17,10 @@ type Config map[string]LogType
 
 // LogType defines configuration for a specific log type
 type LogType struct {
-	BufSize    int64  `toml:"buf_size"`
-	StepsLimit int    `toml:"steps_limit"`
-	TimeReStr  string `toml:"time_regex"`
-	TimeLayout string `toml:"time_layout"`
+	BufSize    int64  `toml:"bufSize"`
+	StepsLimit int    `toml:"stepsLimit"`
+	TimeReStr  string `toml:"timeReStr"`
+	TimeLayout string `toml:"timeLayout"`
 }
 
 // Options holds all configuration options for ttail
@@ -45,24 +45,136 @@ func DefaultOptions() Options {
 	}
 }
 
-// LoadConfig loads configuration from file
+// BuiltinLogTypes contains predefined log format configurations
+var BuiltinLogTypes = Config{
+	"tskv": LogType{
+		TimeReStr:  `\ttimestamp=(\d{4}-\d{2}-\d{2}T\d\d:\d\d:\d\d)\t`,
+		TimeLayout: "2006-01-02T15:04:05",
+	},
+	"kern": LogType{
+		TimeReStr:  `^(\d{4}-\d{2}-\d{2}T\d\d:\d\d:\d\d)`,
+		TimeLayout: "2006-01-02T15:04:05",
+	},
+	"apache": LogType{
+		TimeReStr:  `\[(\d{2}/\w{3}/\d{4}:\d{2}:\d{2}:\d{2})\s`,
+		TimeLayout: "02/Jan/2006:15:04:05",
+	},
+	"apache_common": LogType{
+		TimeReStr:  `\[(\d{2}/\w{3}/\d{4}:\d{2}:\d{2}:\d{2})\s`,
+		TimeLayout: "02/Jan/2006:15:04:05",
+	},
+	"apache_combined": LogType{
+		TimeReStr:  `\[(\d{2}/\w{3}/\d{4}:\d{2}:\d{2}:\d{2})\s`,
+		TimeLayout: "02/Jan/2006:15:04:05",
+	},
+	"nginx": LogType{
+		TimeReStr:  `\[(\d{2}/\w{3}/\d{4}:\d{2}:\d{2}:\d{2})\s`,
+		TimeLayout: "02/Jan/2006:15:04:05",
+	},
+	"nginx_iso": LogType{
+		TimeReStr:  `(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})`,
+		TimeLayout: "2006-01-02T15:04:05",
+	},
+	"java": LogType{
+		TimeReStr:  `^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})`,
+		TimeLayout: "2006-01-02 15:04:05",
+	},
+	"java_iso": LogType{
+		TimeReStr:  `(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})`,
+		TimeLayout: "2006-01-02T15:04:05",
+	},
+	"python": LogType{
+		TimeReStr:  `^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}),\d+`,
+		TimeLayout: "2006-01-02 15:04:05",
+	},
+	"go": LogType{
+		TimeReStr:  `^(\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2})`,
+		TimeLayout: "2006/01/02 15:04:05",
+	},
+	"docker": LogType{
+		TimeReStr:  `^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z)`,
+		TimeLayout: "2006-01-02T15:04:05.000000000Z",
+	},
+	"docker_local": LogType{
+		TimeReStr:  `^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})`,
+		TimeLayout: "2006-01-02T15:04:05",
+	},
+	"kubernetes": LogType{
+		TimeReStr:  `^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z)`,
+		TimeLayout: "2006-01-02T15:04:05.000000000Z",
+	},
+	"syslog": LogType{
+		TimeReStr:  `^(\w{3}\s+\d{1,2} \d{2}:\d{2}:\d{2})`,
+		TimeLayout: "Jan _2 15:04:05",
+	},
+	"syslog_rfc5424": LogType{
+		TimeReStr:  `^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})`,
+		TimeLayout: "2006-01-02T15:04:05",
+	},
+	"mysql": LogType{
+		TimeReStr:  `^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z)`,
+		TimeLayout: "2006-01-02T15:04:05.000000Z",
+	},
+	"mysql_general": LogType{
+		TimeReStr:  `^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})`,
+		TimeLayout: "2006-01-02 15:04:05",
+	},
+	"postgresql": LogType{
+		TimeReStr:  `^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+)`,
+		TimeLayout: "2006-01-02 15:04:05.000",
+	},
+	"elasticsearch": LogType{
+		TimeReStr:  `\[(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}),\d+\]`,
+		TimeLayout: "2006-01-02T15:04:05",
+	},
+	"logstash": LogType{
+		TimeReStr:  `"@timestamp":"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z)"`,
+		TimeLayout: "2006-01-02T15:04:05.000Z",
+	},
+	"json": LogType{
+		TimeReStr:  `"timestamp":"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})"`,
+		TimeLayout: "2006-01-02T15:04:05",
+	},
+	"json_time": LogType{
+		TimeReStr:  `"time":"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})"`,
+		TimeLayout: "2006-01-02T15:04:05",
+	},
+	"rails": LogType{
+		TimeReStr:  `^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})`,
+		TimeLayout: "2006-01-02 15:04:05",
+	},
+	"django": LogType{
+		TimeReStr:  `^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}),\d+`,
+		TimeLayout: "2006-01-02 15:04:05",
+	},
+}
+
+// LoadConfig loads configuration from file, falls back to builtin types
 func LoadConfig(configFile string) (Config, error) {
 	if configFile == "" {
 		configFile = DefaultConfigFile
 	}
 
-	if _, err := os.Stat(configFile); os.IsNotExist(err) {
-		return nil, errors.New("config file does not exist: " + configFile)
-	} else if err != nil {
-		return nil, err
+	// Try to load from file first
+	if _, err := os.Stat(configFile); err == nil {
+		var conf Config
+		if _, err := toml.DecodeFile(configFile, &conf); err != nil {
+			return nil, err
+		}
+
+		// Merge with builtin types (file takes precedence)
+		merged := make(Config)
+		for k, v := range BuiltinLogTypes {
+			merged[k] = v
+		}
+		for k, v := range conf {
+			merged[k] = v
+		}
+		return merged, nil
 	}
 
-	var conf Config
-	if _, err := toml.DecodeFile(configFile, &conf); err != nil {
-		return nil, err
-	}
-
-	return conf, nil
+	// Fall back to builtin types if no config file
+	return BuiltinLogTypes, nil
 }
 
 // GetLogTypeOptions returns options for a specific log type

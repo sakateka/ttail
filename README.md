@@ -6,7 +6,8 @@ A high-performance, memory-efficient log tailing utility that can tail log files
 
 - **Time-based tailing**: Tail logs from a specific time duration (e.g., last 10 minutes)
 - **Binary search optimization**: Efficiently finds the starting position in large log files
-- **Multiple log format support**: Configurable timestamp patterns and layouts
+- **25+ built-in log formats**: No configuration needed for common log types
+- **Interactive TUI**: Beautiful terminal interface for monitoring multiple logs
 - **Memory efficient**: Optimized buffer management for low memory footprint
 - **High performance**: Designed for speed with minimal allocations
 - **Backward compatible**: Maintains API compatibility with the original version
@@ -15,6 +16,7 @@ A high-performance, memory-efficient log tailing utility that can tail log files
 
 ```bash
 go install github.com/sakateka/ttail/cmd/ttail@latest
+go install github.com/sakateka/ttail/cmd/ttail-tui@latest
 ```
 
 Or build from source:
@@ -22,7 +24,8 @@ Or build from source:
 ```bash
 git clone https://github.com/sakateka/ttail.git
 cd ttail
-go build ./cmd/ttail
+go build ./cmd/ttail      # Command-line version
+go build ./cmd/ttail-tui  # Interactive TUI version
 ```
 
 ## Usage
@@ -36,56 +39,122 @@ ttail -n 10s /var/log/app.log
 # Tail last 5 minutes from the timestamp in the last line
 ttail -n 5m -l /var/log/app.log
 
-# Use a specific log type configuration
+# Use a built-in log type (no config file needed!)
 ttail -n 1h -t apache /var/log/apache/access.log
+
+# Use custom config file
+ttail -n 30s -t custom_format -c /path/to/config.toml /var/log/app.log
 
 # Enable debug output
 ttail -d -n 30s /var/log/app.log
+```
+
+### Interactive TUI
+
+```bash
+# Monitor multiple log files with beautiful TUI
+ttail-tui test-logs/app1.log test-logs/app2.log
+
+# Different log types for different files
+ttail-tui -t tskv app1.log -t java app2.log
+
+# Custom preview window size
+ttail-tui -lines 30 /var/log/*.log
+
+# Navigate with ↑/↓, ENTER to toggle preview, q to quit
 ```
 
 ### Options
 
 - `-n duration`: Time duration to tail (default: 10s)
 - `-l`: Use timestamp from last line instead of current time
-- `-t type`: Log type from configuration file
+- `-t type`: Log type (see Built-in Log Types below)
+- `-c config`: Path to configuration file (optional)
 - `-d`: Enable debug output
 
 ### Supported Duration Formats
 
 - `10s` - 10 seconds
-- `5m` - 5 minutes
+- `5m` - 5 minutes  
 - `2h` - 2 hours
 - `1h30m` - 1 hour 30 minutes
 
-## Configuration
+## Built-in Log Types
 
-Create a configuration file at `/etc/ttail/types.toml` to define custom log formats:
+TTail includes built-in support for 25+ common log formats. No configuration file needed!
+
+### Web Servers
+- `apache`, `apache_common`, `apache_combined` - Apache access logs
+- `nginx` - Nginx access logs (default format)
+- `nginx_iso` - Nginx with ISO timestamps
+
+### Applications
+- `java` - Java application logs (`2023-12-25 10:30:45`)
+- `java_iso` - Java with ISO timestamps (`2023-12-25T10:30:45`)
+- `python` - Python logging format
+- `go` - Go standard log format (`2023/12/25 10:30:45`)
+- `rails` - Ruby on Rails logs
+- `django` - Django application logs
+
+### Containers & Orchestration
+- `docker` - Docker container logs (UTC timestamps)
+- `docker_local` - Docker with local timezone
+- `kubernetes` - Kubernetes pod logs
+
+### Databases
+- `mysql` - MySQL error logs
+- `mysql_general` - MySQL general query logs
+- `postgresql` - PostgreSQL logs
+- `elasticsearch` - Elasticsearch logs
+
+### System & Infrastructure
+- `kern` - Kernel/system logs (journalctl, systemd)
+- `syslog` - Traditional syslog (RFC 3164)
+- `syslog_rfc5424` - Modern syslog (RFC 5424)
+- `tskv` - Tab-separated key-value format (default)
+
+### Structured Logs
+- `json` - JSON logs with `timestamp` field
+- `json_time` - JSON logs with `time` field
+- `logstash` - Logstash JSON format
+
+### Examples
+
+```bash
+# Apache access logs
+ttail -n 1h -t apache /var/log/apache2/access.log
+
+# Docker container logs
+ttail -n 30m -t docker /var/lib/docker/containers/*/container.log
+
+# Java application logs
+ttail -n 15m -l -t java /var/log/myapp/application.log
+
+# Kubernetes pod logs
+kubectl logs pod-name | ttail -n 10m -t kubernetes
+
+# System logs
+ttail -n 2h -t kern /var/log/kern.log
+```
+
+## Custom Configuration
+
+You can still create custom log formats with a TOML configuration file:
 
 ```toml
-[apache]
-buf_size = 8192
-steps_limit = 512
-time_regex = '\[(\d{2}/\w{3}/\d{4}:\d{2}:\d{2}:\d{2})\s'
-time_layout = "02/Jan/2006:15:04:05"
-
-[nginx]
-buf_size = 4096
-time_regex = '(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})'
-time_layout = "2006-01-02T15:04:05"
-
 [custom_app]
-buf_size = 16384
-steps_limit = 1024
-time_regex = 'timestamp=(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})'
-time_layout = "2006-01-02T15:04:05"
+timeReStr = 'timestamp=(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})'
+timeLayout = "2006-01-02T15:04:05"
+bufSize = 16384
+stepsLimit = 1024
 ```
 
 ### Configuration Parameters
 
-- `buf_size`: Buffer size for file reading (bytes)
-- `steps_limit`: Maximum steps for backward search
-- `time_regex`: Regular expression to extract timestamp (first capture group)
-- `time_layout`: Go time layout for parsing timestamps
+- `timeReStr`: Regular expression to extract timestamp (first capture group)
+- `timeLayout`: Go time layout for parsing timestamps
+- `bufSize`: Buffer size for file reading (bytes, optional)
+- `stepsLimit`: Maximum steps for backward search (optional)
 
 ## Library Usage
 
@@ -128,12 +197,12 @@ func main() {
 ### Advanced Usage
 
 ```go
-// Using configuration from file
+// Using built-in log types programmatically
 tfile, err := ttail.NewTFileWithConfig(
-    file,
-    "/path/to/config.toml",
-    "apache",
-    10*time.Minute,
+    file, 
+    "", // empty config file uses built-ins
+    "apache", 
+    10*time.Minute, 
     true,
 )
 
@@ -153,14 +222,14 @@ The modernized ttail is organized into several focused packages:
 
 ### Core Packages
 
-- **`internal/config`**: Configuration management and options
-- **`internal/parser`**: Timestamp parsing and regex handling
+- **`internal/config`**: Configuration management and built-in log types
+- **`internal/parser`**: Timestamp parsing and regex handling  
 - **`internal/buffer`**: Efficient line buffering and reading
 - **`internal/searcher`**: Time-based binary search implementation
 
 ### Performance Optimizations
 
-1. **Memory Efficiency**:
+1. **Memory Efficiency**: 
    - Reusable buffers to minimize allocations
    - Configurable buffer sizes for different use cases
    - Efficient line parsing without unnecessary copying
@@ -189,10 +258,8 @@ go test -cover ./...
 # Run benchmarks
 go test -bench=. ./...
 
-# Run specific package tests
-go test -v ./internal/config
-go test -v ./internal/parser
-go test -v ./internal/buffer
+# Test specific log types
+go test -v ./internal/config -run TestBuiltinLogTypes
 ```
 
 ### Benchmark Results
@@ -239,14 +306,48 @@ go mod download
 go test ./...
 ```
 
+### Adding New Log Types
+
+To add a new built-in log type, edit `internal/config/config.go`:
+
+```go
+"myformat": LogType{
+    TimeReStr:  `^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})`,
+    TimeLayout: "2006-01-02 15:04:05",
+},
+```
+
+Then add tests in `internal/config/builtin_types_test.go`.
+
 ## License
 
-[Add your license information here]
+MIT License
+
+Copyright (c) 2023 ttail contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
 ## Changelog
 
 ### v2.0.0 (Modernized)
 - Complete code reorganization into focused packages
+- 25+ built-in log format types (no config file needed)
 - Significant performance improvements
 - Enhanced memory efficiency
 - Comprehensive test coverage
