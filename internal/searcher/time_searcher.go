@@ -19,6 +19,9 @@ type TimeSearcher struct {
 	fromTime time.Time
 	offset   int64
 	size     int64
+	// Pre-allocated buffers to avoid allocations
+	lineBuf []byte
+	tempBuf []byte
 }
 
 // NewTimeSearcher creates a new time searcher with optimized defaults
@@ -33,6 +36,9 @@ func NewTimeSearcher(file *os.File, opts config.Options) *TimeSearcher {
 		opts:     opts,
 		fromTime: time.Now(),
 		size:     size,
+		// Pre-allocate buffers to avoid allocations during search
+		lineBuf: make([]byte, 0, 1024), // Pre-allocate for typical line length
+		tempBuf: make([]byte, 0, 512),  // Pre-allocate for temporary operations
 	}
 }
 
@@ -57,9 +63,9 @@ func (ts *TimeSearcher) findLastLineTime() (time.Time, error) {
 		}
 
 		if len(line) > 0 {
-			if tm, err := ts.parser.ParseTime(line); err == nil && tm != nil {
+			if tm, ok := ts.parser.ParseTime(line); ok {
 				ts.offset = offset
-				return *tm, nil
+				return tm, nil
 			}
 		}
 
@@ -75,13 +81,13 @@ func (ts *TimeSearcher) findLastLineTime() (time.Time, error) {
 }
 
 // findTimeAtOffset finds the first valid timestamp at or after the given offset
-func (ts *TimeSearcher) findTimeAtOffset(offset int64) (*time.Time, error) {
+func (ts *TimeSearcher) findTimeAtOffset(offset int64) (time.Time, bool) {
 	ts.offset = offset
 
 	for {
 		line, err := ts.buffer.ReadLine(ts.file, ts.offset)
 		if err != nil {
-			return nil, err
+			return time.Time{}, false
 		}
 
 		if len(line) == 0 {
@@ -89,14 +95,14 @@ func (ts *TimeSearcher) findTimeAtOffset(offset int64) (*time.Time, error) {
 			continue
 		}
 
-		if tm, err := ts.parser.ParseTime(line); err == nil && tm != nil {
-			return tm, nil
+		if tm, ok := ts.parser.ParseTime(line); ok {
+			return tm, true
 		}
 
 		// Try next line in buffer
 		if nextLine, err := ts.buffer.NextLine(); err == nil && len(nextLine) > 0 {
-			if tm, err := ts.parser.ParseTime(nextLine); err == nil && tm != nil {
-				return tm, nil
+			if tm, ok := ts.parser.ParseTime(nextLine); ok {
+				return tm, true
 			}
 		}
 
@@ -117,8 +123,8 @@ func (ts *TimeSearcher) preciseFindTime() error {
 			return err
 		}
 
-		if tm, err := ts.parser.ParseTime(line); err == nil && tm != nil {
-			if ts.fromTime.Sub(*tm) <= ts.opts.Duration {
+		if tm, ok := ts.parser.ParseTime(line); ok {
+			if ts.fromTime.Sub(tm) <= ts.opts.Duration {
 				break
 			}
 		}
@@ -153,14 +159,11 @@ func (ts *TimeSearcher) FindPosition() error {
 	for (down - up) > ts.opts.BufSize {
 		middle := up + (down-up)/2 // Prevent overflow
 
-		tm, err := ts.findTimeAtOffset(middle)
-		if err != nil {
-			if err == io.EOF {
-				// If we hit EOF, try from beginning
-				ts.offset = 0
-				return nil
-			}
-			return err
+		tm, ok := ts.findTimeAtOffset(middle)
+		if !ok {
+			// If we can't find time, try from beginning
+			ts.offset = 0
+			return nil
 		}
 
 		if tm.Before(ts.fromTime) {

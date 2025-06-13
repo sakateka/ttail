@@ -42,6 +42,18 @@ func NewTimeFile(f *os.File, opt ...TimeFileOptions) *TFile {
 	}
 }
 
+// NewTimeFileWithOptions creates a new time-searchable file instance with pre-configured options
+// This avoids allocations from option functions
+func NewTimeFileWithOptions(f *os.File, opts config.Options) *TFile {
+	debug("NewTimeFileWithOptions: with options %+v", opts)
+
+	return &TFile{
+		searcher: searcher.NewTimeSearcher(f, opts),
+		opts:     opts,
+		file:     f,
+	}
+}
+
 // FindPosition searches for the optimal starting position in the file
 func (t *TFile) FindPosition() error {
 	return t.searcher.FindPosition()

@@ -304,12 +304,20 @@ func (m *Model) initLogFile(lf *LogFile) error {
 		ttail.WithTimeFromLastLine(flagTimeFromLastLine),
 	}
 
+	// Apply log type configuration directly to avoid slice allocations
 	if lf.LogType != "" {
-		logOpts, err := ttail.OptionsFromConfig(lf.LogType, flagConfigFile)
-		if err != nil {
+		baseOpts := config.DefaultOptions()
+		baseOpts.Duration = flagDuration
+		baseOpts.TimeFromLastLine = flagTimeFromLastLine
+
+		if err := ttail.OptionsFromConfigDirect(lf.LogType, flagConfigFile, &baseOpts); err != nil {
 			return err
 		}
-		opts = append(opts, logOpts...)
+
+		tfile := ttail.NewTimeFileWithOptions(file, baseOpts)
+		lf.File = file
+		lf.TFile = tfile
+		return nil
 	}
 
 	tfile := ttail.NewTimeFile(file, opts...)

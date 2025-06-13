@@ -4,11 +4,45 @@ import (
 	"errors"
 	"os"
 	"regexp"
+	"sync"
 	"time"
 
-	"github.com/BurntSushi/toml"
 	"maps"
+
+	"github.com/BurntSushi/toml"
 )
+
+// regexCache caches compiled regexes to avoid recompilation
+var (
+	regexCache = make(map[string]*regexp.Regexp)
+	regexMutex sync.RWMutex
+)
+
+// getCompiledRegex returns a cached compiled regex or compiles and caches a new one
+func getCompiledRegex(pattern string) (*regexp.Regexp, error) {
+	regexMutex.RLock()
+	if re, exists := regexCache[pattern]; exists {
+		regexMutex.RUnlock()
+		return re, nil
+	}
+	regexMutex.RUnlock()
+
+	regexMutex.Lock()
+	defer regexMutex.Unlock()
+
+	// Double-check after acquiring write lock
+	if re, exists := regexCache[pattern]; exists {
+		return re, nil
+	}
+
+	re, err := regexp.Compile(pattern)
+	if err != nil {
+		return nil, err
+	}
+
+	regexCache[pattern] = re
+	return re, nil
+}
 
 // DefaultConfigFile for ttail
 const DefaultConfigFile = "/etc/ttail/types.toml"
@@ -194,7 +228,7 @@ func (lt *LogType) ApplyToOptions(opts *Options) error {
 	}
 
 	if lt.TimeReStr != "" {
-		re, err := regexp.Compile(lt.TimeReStr)
+		re, err := getCompiledRegex(lt.TimeReStr)
 		if err != nil {
 			return err
 		}

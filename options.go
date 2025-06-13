@@ -65,7 +65,8 @@ func OptionsFromConfig(logType string, configPath string) ([]TimeFileOptions, er
 		return nil, err
 	}
 
-	var options []TimeFileOptions
+	// Pre-allocate slice to avoid reallocations
+	options := make([]TimeFileOptions, 0, 4)
 	if lt.BufSize != 0 {
 		options = append(options, WithBufSize(lt.BufSize))
 	}
@@ -80,4 +81,19 @@ func OptionsFromConfig(logType string, configPath string) ([]TimeFileOptions, er
 	}
 
 	return options, nil
+}
+
+// OptionsFromConfigDirect applies config directly to options to avoid slice allocations
+func OptionsFromConfigDirect(logType string, configPath string, opts *config.Options) error {
+	conf, err := config.LoadConfig(configPath)
+	if err != nil {
+		return err
+	}
+
+	lt, err := conf.GetLogTypeOptions(logType)
+	if err != nil {
+		return err
+	}
+
+	return lt.ApplyToOptions(opts)
 }

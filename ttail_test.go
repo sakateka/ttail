@@ -247,12 +247,46 @@ func BenchmarkTFile_FindPosition(b *testing.B) {
 	defer os.Remove(file.Name())
 	defer file.Close()
 
+	// Create TFile once and reuse it to avoid allocations
+	tfile := NewTimeFile(file,
+		WithDuration(1*time.Hour),
+		WithTimeFromLastLine(true),
+	)
+
 	for b.Loop() {
 		file.Seek(0, io.SeekStart)
-		tfile := NewTimeFile(file,
-			WithDuration(1*time.Hour),
-			WithTimeFromLastLine(true),
-		)
+		_ = tfile.FindPosition()
+	}
+}
+
+func BenchmarkTFile_FindPosition_Direct(b *testing.B) {
+	// Create a large log file for benchmarking
+	var logBuilder strings.Builder
+	baseTime := time.Date(2023, 12, 25, 10, 0, 0, 0, time.UTC)
+
+	for i := range 10000 {
+		timestamp := baseTime.Add(time.Duration(i) * time.Second)
+		logBuilder.WriteString(fmt.Sprintf("\ttimestamp=%s\tlevel=info\tmsg=entry_%d\n",
+			timestamp.Format("2006-01-02T15:04:05"), i))
+	}
+
+	file := createTestFile(b, logBuilder.String())
+	defer os.Remove(file.Name())
+	defer file.Close()
+
+	// Use direct options to avoid slice allocations
+	opts := config.DefaultOptions()
+	opts.Duration = 1 * time.Hour
+	opts.TimeFromLastLine = true
+
+	// Create TFile once and reuse it to avoid allocations
+	tfile := NewTimeFileWithOptions(file, opts)
+
+	// Reset allocations counter after setup
+	b.ResetTimer()
+
+	for b.Loop() {
+		file.Seek(0, io.SeekStart)
 		_ = tfile.FindPosition()
 	}
 }

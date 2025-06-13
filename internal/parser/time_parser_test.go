@@ -54,18 +54,18 @@ func TestTimeParser_ParseTime(t *testing.T) {
 			re := regexp.MustCompile(tt.regex)
 			parser := NewTimeParser(re, tt.layout, time.UTC)
 
-			result, err := parser.ParseTime([]byte(tt.line))
+			result, ok := parser.ParseTime([]byte(tt.line))
 
-			if tt.expectErr && err == nil {
-				t.Errorf("expected error but got none")
+			if tt.expectErr && ok {
+				t.Errorf("expected error but got success")
 			}
-			if !tt.expectErr && err != nil {
-				t.Errorf("unexpected error: %v", err)
+			if !tt.expectErr && !ok && tt.expectTime {
+				t.Errorf("unexpected parsing failure")
 			}
-			if tt.expectTime && result == nil {
-				t.Errorf("expected timestamp but got nil")
+			if tt.expectTime && !ok {
+				t.Errorf("expected timestamp but parsing failed")
 			}
-			if !tt.expectTime && result != nil {
+			if !tt.expectTime && ok && !tt.expectErr {
 				t.Errorf("expected no timestamp but got: %v", result)
 			}
 		})
