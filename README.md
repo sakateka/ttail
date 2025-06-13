@@ -75,7 +75,7 @@ ttail-tui -lines 30 /var/log/*.log
 ### Supported Duration Formats
 
 - `10s` - 10 seconds
-- `5m` - 5 minutes  
+- `5m` - 5 minutes
 - `2h` - 2 hours
 - `1h30m` - 1 hour 30 minutes
 
@@ -199,10 +199,10 @@ func main() {
 ```go
 // Using built-in log types programmatically
 tfile, err := ttail.NewTFileWithConfig(
-    file, 
+    file,
     "", // empty config file uses built-ins
-    "apache", 
-    10*time.Minute, 
+    "apache",
+    10*time.Minute,
     true,
 )
 
@@ -223,13 +223,13 @@ The modernized ttail is organized into several focused packages:
 ### Core Packages
 
 - **`internal/config`**: Configuration management and built-in log types
-- **`internal/parser`**: Timestamp parsing and regex handling  
+- **`internal/parser`**: Timestamp parsing and regex handling
 - **`internal/buffer`**: Efficient line buffering and reading
 - **`internal/searcher`**: Time-based binary search implementation
 
 ### Performance Optimizations
 
-1. **Memory Efficiency**: 
+1. **Memory Efficiency**:
    - Reusable buffers to minimize allocations
    - Configurable buffer sizes for different use cases
    - Efficient line parsing without unnecessary copying

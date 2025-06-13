@@ -95,8 +95,7 @@ func BenchmarkTimeParser_ParseTime(b *testing.B) {
 	parser := NewTimeParser(re, "2006-01-02T15:04:05", time.UTC)
 	line := []byte("\ttimestamp=2023-12-25T10:30:45\tother data here")
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_, _ = parser.ParseTime(line)
 	}
 }

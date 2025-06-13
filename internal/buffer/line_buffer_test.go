@@ -187,8 +187,7 @@ func BenchmarkLineBuffer_ReadLine(b *testing.B) {
 	reader := &mockReaderAt{data: []byte(data)}
 	buffer := NewLineBuffer(1024)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		buffer.Reset()
 		_, _ = buffer.ReadLine(reader, 0)
 	}
@@ -199,8 +198,7 @@ func BenchmarkLineBuffer_FindLastLine(b *testing.B) {
 	reader := &mockReaderAt{data: []byte(data)}
 	buffer := NewLineBuffer(1024)
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_, _ = buffer.FindLastLine(reader, 0)
 	}
 }

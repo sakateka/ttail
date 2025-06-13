@@ -20,7 +20,7 @@ type TFile struct {
 	file     *os.File
 }
 
-func debug(format string, args ...interface{}) {
+func debug(format string, args ...any) {
 	if FlagDebug {
 		fmt.Fprintf(os.Stderr, ">>> "+format+"\n", args...)
 	}

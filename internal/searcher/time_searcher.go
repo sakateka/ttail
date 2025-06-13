@@ -48,10 +48,7 @@ func (ts *TimeSearcher) GetOffset() int64 {
 
 // findLastLineTime efficiently finds the timestamp of the last line
 func (ts *TimeSearcher) findLastLineTime() (time.Time, error) {
-	offset := ts.size - ts.opts.BufSize
-	if offset < 0 {
-		offset = 0
-	}
+	offset := max(ts.size-ts.opts.BufSize, 0)
 
 	for step := ts.opts.StepsLimit; offset >= 0 && step > 0; step-- {
 		line, err := ts.buffer.FindLastLine(ts.file, offset)

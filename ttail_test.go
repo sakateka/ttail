@@ -188,7 +188,7 @@ timeLayout = "2006-01-02T15:04:05"
 	}
 	defer os.Remove(tmpFile.Name())
 
-	if _, err := tmpFile.WriteString(configContent); err != nil {
+	if _, err = tmpFile.WriteString(configContent); err != nil {
 		t.Fatalf("failed to write temp config file: %v", err)
 	}
 	tmpFile.Close()
@@ -237,7 +237,7 @@ func BenchmarkTFile_FindPosition(b *testing.B) {
 	var logBuilder strings.Builder
 	baseTime := time.Date(2023, 12, 25, 10, 0, 0, 0, time.UTC)
 
-	for i := 0; i < 10000; i++ {
+	for i := range 10000 {
 		timestamp := baseTime.Add(time.Duration(i) * time.Second)
 		logBuilder.WriteString(fmt.Sprintf("\ttimestamp=%s\tlevel=info\tmsg=entry_%d\n",
 			timestamp.Format("2006-01-02T15:04:05"), i))
@@ -247,8 +247,7 @@ func BenchmarkTFile_FindPosition(b *testing.B) {
 	defer os.Remove(file.Name())
 	defer file.Close()
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		file.Seek(0, io.SeekStart)
 		tfile := NewTimeFile(file,
 			WithDuration(1*time.Hour),
@@ -268,8 +267,7 @@ func BenchmarkTFile_CopyTo(b *testing.B) {
 	tfile := NewTimeFile(file, WithDuration(1*time.Hour))
 	_ = tfile.FindPosition()
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		var buf bytes.Buffer
 		_, _ = tfile.CopyTo(&buf)
 	}

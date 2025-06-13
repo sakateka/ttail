@@ -145,7 +145,7 @@ timeLayout = "2006-01-02T15:04:05"
 	}
 	defer os.Remove(tmpFile.Name())
 
-	if _, err := tmpFile.WriteString(content); err != nil {
+	if _, err = tmpFile.WriteString(content); err != nil {
 		t.Fatalf("failed to write temp file: %v", err)
 	}
 	tmpFile.Close()
@@ -186,8 +186,7 @@ func BenchmarkOptions_Clone(b *testing.B) {
 	opts.Duration = 30 * time.Second
 	opts.TimeFromLastLine = true
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		_ = opts.Clone()
 	}
 }
@@ -200,8 +199,7 @@ func BenchmarkLogType_ApplyToOptions(b *testing.B) {
 		TimeLayout: "2006-01-02",
 	}
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		opts := DefaultOptions()
 		_ = logType.ApplyToOptions(&opts)
 	}

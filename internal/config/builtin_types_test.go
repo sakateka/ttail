@@ -252,8 +252,7 @@ func BenchmarkBuiltinLogTypeRegex(b *testing.B) {
 	re, _ := regexp.Compile(logType.TimeReStr)
 	sampleLine := "2023-12-25 10:30:45 INFO [main] com.example.App - Starting application"
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		re.FindStringSubmatch(sampleLine)
 	}
 }

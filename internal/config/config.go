@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
+	"maps"
 )
 
 // DefaultConfigFile for ttail
@@ -164,12 +165,8 @@ func LoadConfig(configFile string) (Config, error) {
 
 		// Merge with builtin types (file takes precedence)
 		merged := make(Config)
-		for k, v := range BuiltinLogTypes {
-			merged[k] = v
-		}
-		for k, v := range conf {
-			merged[k] = v
-		}
+		maps.Copy(merged, BuiltinLogTypes)
+		maps.Copy(merged, conf)
 		return merged, nil
 	}
 
