@@ -9,6 +9,7 @@ import (
 	stdLog "log"
 
 	"github.com/sakateka/ttail"
+	"github.com/sakateka/ttail/internal/config"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -17,16 +18,18 @@ var log *zap.Logger
 var flagTimeFromLastLine bool
 var flagLogType string
 var flagDuration time.Duration
+var configPath string
 
 func init() {
 	flag.Usage = func() {
 		_, _ = os.Stderr.WriteString("Usage of " + os.Args[0] + " [options] file [file ...]:\n")
 		flag.PrintDefaults()
 	}
-	flag.DurationVar(&flagDuration, "n", 10*time.Second, "offset in time to start copy (default 10s)")
-	flag.BoolVar(&flagTimeFromLastLine, "l", false, "tail last N secconds from time in last line (default from time.Now())")
-	flag.StringVar(&flagLogType, "t", "", "use a type of log (default tskv)")
+	flag.DurationVar(&flagDuration, "n", 10*time.Second, "offset in time to start copy")
+	flag.BoolVar(&flagTimeFromLastLine, "l", false, "tail last N seconds from time in the last line (default from now)")
+	flag.StringVar(&flagLogType, "t", "tskv", "use a type of log")
 	flag.BoolVar(&ttail.FlagDebug, "d", false, "set Debug mode")
+	flag.StringVar(&configPath, "c", config.DefaultConfigFile, "set config path")
 }
 
 func main() {
@@ -46,9 +49,11 @@ func main() {
 	if err != nil {
 		stdLog.Fatalf("can't initialize zap logger: %v", err)
 	}
+	defer log.Sync()
 
 	var file *os.File
 	var fileInfo os.FileInfo
+
 	for _, fname := range flag.Args() {
 		if file != nil {
 			file.Close()
@@ -64,22 +69,27 @@ func main() {
 			log.Error("[main]: skip directory!", zap.String("name", fname))
 			continue
 		}
+
 		file, err = os.Open(fname)
 		if err != nil {
 			log.Error("[main]: skip", zap.String("logname", fname), zap.Error(err))
 			continue
 		}
+
+		// Build options for this file
 		opts := []ttail.TimeFileOptions{
 			ttail.WithTimeFromLastLine(flagTimeFromLastLine),
 			ttail.WithDuration(flagDuration),
 		}
+
 		if flagLogType != "" {
-			logOpts, err := ttail.OptionsFromConfig(flagLogType)
+			logOpts, err := ttail.OptionsFromConfig(flagLogType, configPath)
 			if err != nil {
 				log.Fatal("Failed to get ttail options from config", zap.Error(err))
 			}
 			opts = append(opts, logOpts...)
 		}
+
 		tfile := ttail.NewTimeFile(file, opts...)
 
 		if err := tfile.FindPosition(); err != nil {
@@ -89,6 +99,11 @@ func main() {
 			log.Debug("[main]: findPosition got EOF")
 			continue
 		}
+
 		_, _ = tfile.CopyTo(os.Stdout)
+	}
+
+	if file != nil {
+		file.Close()
 	}
 }

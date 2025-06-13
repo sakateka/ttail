@@ -1,123 +1,83 @@
 package ttail
 
 import (
-	"errors"
-	"os"
 	"regexp"
 	"time"
 
-	"github.com/BurntSushi/toml"
+	"github.com/sakateka/ttail/internal/config"
 )
 
-// DefaultConfigFile for ttail
-var DefaultConfigFile = "/etc/ttail/types.toml"
+// TimeFileOptions represents a configuration function for backward compatibility
+type TimeFileOptions func(*config.Options)
 
-type options struct {
-	location         *time.Location
-	duration         time.Duration
-	bufSize          int64
-	stepsLimit       int
-	timeRe           *regexp.Regexp
-	timeLayout       string
-	timeFromLastLine bool
-}
-
-// TimeFileOptions set ttail options, duration, time re and layout, bufSize...
-type TimeFileOptions func(*options)
-
-var defaultOptions = options{
-	location:   time.Local,
-	bufSize:    1 << 14, // 16kb
-	stepsLimit: 1024,
-	timeRe:     regexp.MustCompile(`\ttimestamp=(\d{4}-\d{2}-\d{2}T\d\d:\d\d:\d\d)\t`),
-	timeLayout: "2006-01-02T15:04:05",
-}
-
-// WithDuration set tail time span
+// WithDuration sets the tail time span
 func WithDuration(t time.Duration) TimeFileOptions {
-	return func(o *options) {
-		o.duration = t
+	return func(o *config.Options) {
+		o.Duration = t
 	}
 }
 
 // WithTimeFromLastLine determines where to take time for tail time span
 func WithTimeFromLastLine(timeFromLastLine bool) TimeFileOptions {
-	return func(o *options) {
-		o.timeFromLastLine = timeFromLastLine
+	return func(o *config.Options) {
+		o.TimeFromLastLine = timeFromLastLine
 	}
 }
 
-// WithBufSize set buffer size for random reads
+// WithBufSize sets buffer size for random reads
 func WithBufSize(size int64) TimeFileOptions {
-	return func(o *options) {
-		o.bufSize = size
+	return func(o *config.Options) {
+		o.BufSize = size
 	}
 }
 
-// WithStepsLimit set number of attempts for lastLineTime
+// WithStepsLimit sets number of attempts for lastLineTime
 func WithStepsLimit(steps int) TimeFileOptions {
-	return func(o *options) {
-		o.stepsLimit = steps
+	return func(o *config.Options) {
+		o.StepsLimit = steps
 	}
 }
 
-// WithTimeReAsStr compile string to regexp for time search
+// WithTimeReAsStr compiles string to regexp for time search
 func WithTimeReAsStr(timeRe string) TimeFileOptions {
 	re := regexp.MustCompile(timeRe)
-	return func(o *options) {
-		o.timeRe = re
+	return func(o *config.Options) {
+		o.TimeRe = re
 	}
 }
 
-// WithTimeLayout set expected time layout for time.Parse
+// WithTimeLayout sets expected time layout for time.Parse
 func WithTimeLayout(layout string) TimeFileOptions {
-	return func(o *options) {
-		o.timeLayout = layout
+	return func(o *config.Options) {
+		o.TimeLayout = layout
 	}
 }
 
-// Config for ttail
-type Config map[string]Type
-
-// Type of log
-type Type struct {
-	BufSize    int64
-	StepsLimit int
-	TimeReStr  string
-	TimeLayout string
-}
-
-// OptionsFromConfig convert config to options list
-func OptionsFromConfig(logType string) ([]TimeFileOptions, error) {
-	if _, err := os.Stat(DefaultConfigFile); os.IsNotExist(err) {
-		return nil, errors.New("Config file does not exist")
-	} else if err != nil {
+// OptionsFromConfig converts config to options list for backward compatibility
+func OptionsFromConfig(logType string, configPath string) ([]TimeFileOptions, error) {
+	conf, err := config.LoadConfig(configPath)
+	if err != nil {
 		return nil, err
 	}
 
-	var conf Config
-	if _, err := toml.DecodeFile(DefaultConfigFile, &conf); err != nil {
+	lt, err := conf.GetLogTypeOptions(logType)
+	if err != nil {
 		return nil, err
 	}
-	aType, ok := conf[logType]
-	if !ok {
-		return nil, errors.New("Failed to find options for log type: " + logType)
+
+	var options []TimeFileOptions
+	if lt.BufSize != 0 {
+		options = append(options, WithBufSize(lt.BufSize))
 	}
-	var opts []TimeFileOptions
-	if aType.BufSize != 0 {
-		opts = append(opts, WithBufSize(aType.BufSize))
+	if lt.StepsLimit != 0 {
+		options = append(options, WithStepsLimit(lt.StepsLimit))
+	}
+	if lt.TimeReStr != "" {
+		options = append(options, WithTimeReAsStr(lt.TimeReStr))
+	}
+	if lt.TimeLayout != "" {
+		options = append(options, WithTimeLayout(lt.TimeLayout))
 	}
 
-	if aType.StepsLimit != 0 {
-		opts = append(opts, WithStepsLimit(aType.StepsLimit))
-	}
-
-	if aType.TimeReStr != "" {
-		opts = append(opts, WithTimeReAsStr(aType.TimeReStr))
-	}
-
-	if aType.TimeLayout != "" {
-		opts = append(opts, WithTimeLayout(aType.TimeLayout))
-	}
-	return opts, nil
+	return options, nil
 }
