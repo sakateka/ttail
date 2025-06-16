@@ -1,23 +1,24 @@
 # ttail - Timed Tail
+[English](README.en.md) | [Русский](README.md)
 
-A high-performance, memory-efficient log tailing utility that can tail log files based on timestamps rather than just line counts. Perfect for analyzing time-based log data with precision.
+Высокопроизводительная и эффективная по памяти утилита для отслеживания логов, которая может отслеживать файлы логов на основе временных меток, а не только количества строк. Идеально подходит для точного анализа данных логов на основе времени.
 
-## Features
+## Возможности
 
-- **Time-based tailing**: Tail logs from a specific time duration (e.g., last 10 minutes)
-- **Binary search optimization**: Efficiently finds the starting position in large log files
-- **25+ built-in log formats**: No configuration needed for common log types
-- **Memory efficient**: Optimized buffer management for low memory footprint
-- **High performance**: Designed for speed with minimal allocations
-- **Backward compatible**: Maintains API compatibility with the original version
+- **Отслеживание по времени**: Отслеживание логов за определенный промежуток времени (например, последние 10 минут)
+- **Оптимизация с помощью бинарного поиска**: Эффективно находит начальную позицию в больших файлах логов
+- **25+ встроенных форматов логов**: Не требуется настройка для распространенных типов логов
+- **Эффективность по памяти**: Оптимизированное управление буфером для низкого потребления памяти
+- **Высокая производительность**: Разработано для скорости с минимальными выделениями памяти
+- **Обратная совместимость**: Сохраняет совместимость API с оригинальной версией
 
-## Installation
+## Установка
 
 ```bash
 go install github.com/sakateka/ttail/cmd/ttail@latest
 ```
 
-Or build from source:
+Или сборка из исходного кода:
 
 ```bash
 git clone https://github.com/sakateka/ttail.git
@@ -25,120 +26,120 @@ cd ttail
 go build ./cmd/ttail
 ```
 
-## Usage
+## Использование
 
-### Command Line
+### Командная строка
 
 ```bash
-# Tail last 10 seconds from current time
+# Отследить последние 10 секунд от текущего времени
 ttail -n 10s /var/log/app.log
 
-# Tail last 5 minutes from the timestamp in the last line
+# Отследить последние 5 минут от временной метки в последней строке
 ttail -n 5m -l /var/log/app.log
 
-# Use a built-in log type (no config file needed!)
+# Использовать встроенный тип лога (файл конфигурации не нужен!)
 ttail -n 1h -t apache /var/log/apache/access.log
 
-# Use custom config file
+# Использовать пользовательский файл конфигурации
 ttail -n 30s -t custom_format -c /path/to/config.toml /var/log/app.log
 
-# Enable debug output
+# Включить отладочный вывод
 ttail -d -n 30s /var/log/app.log
 ```
 
-### Options
+### Опции
 
-- `-n duration`: Time duration to tail (default: 10s)
-- `-l`: Use timestamp from last line instead of current time
-- `-t type`: Log type (see Built-in Log Types below)
-- `-c config`: Path to configuration file (optional)
-- `-d`: Enable debug output
+- `-n duration`: Промежуток времени для отслеживания (по умолчанию: 10s)
+- `-l`: Использовать временную метку из последней строки вместо текущего времени
+- `-t type`: Тип лога (см. Встроенные типы логов ниже)
+- `-c config`: Путь к файлу конфигурации (необязательно)
+- `-d`: Включить отладочный вывод
 
-### Supported Duration Formats
+### Поддерживаемые форматы длительности
 
-- `10s` - 10 seconds
-- `5m` - 5 minutes
-- `2h` - 2 hours
-- `1h30m` - 1 hour 30 minutes
+- `10s` - 10 секунд
+- `5m` - 5 минут
+- `2h` - 2 часа
+- `1h30m` - 1 час 30 минут
 
-## Built-in Log Types
+## Встроенные типы логов
 
-TTail includes built-in support for 25+ common log formats. No configuration file needed!
+TTail включает встроенную поддержку более 25 распространенных форматов логов. Файл конфигурации не требуется!
 
-### Web Servers
-- `apache`, `apache_common`, `apache_combined` - Apache access logs
-- `nginx` - Nginx access logs (default format)
-- `nginx_iso` - Nginx with ISO timestamps
+### Веб-серверы
+- `apache`, `apache_common`, `apache_combined` - Логи доступа Apache
+- `nginx` - Логи доступа Nginx (формат по умолчанию)
+- `nginx_iso` - Nginx с временными метками в формате ISO
 
-### Applications
-- `java` - Java application logs (`2023-12-25 10:30:45`)
-- `java_iso` - Java with ISO timestamps (`2023-12-25T10:30:45`)
-- `python` - Python logging format
-- `go` - Go standard log format (`2023/12/25 10:30:45`)
-- `rails` - Ruby on Rails logs
-- `django` - Django application logs
+### Приложения
+- `java` - Логи приложений Java (`2023-12-25 10:30:45`)
+- `java_iso` - Java с временными метками в формате ISO (`2023-12-25T10:30:45`)
+- `python` - Формат логирования Python
+- `go` - Стандартный формат логов Go (`2023/12/25 10:30:45`)
+- `rails` - Логи Ruby on Rails
+- `django` - Логи приложений Django
 
-### Containers & Orchestration
-- `docker` - Docker container logs (UTC timestamps)
-- `docker_local` - Docker with local timezone
-- `kubernetes` - Kubernetes pod logs
+### Контейнеры и оркестрация
+- `docker` - Логи контейнеров Docker (временные метки в UTC)
+- `docker_local` - Docker с локальным часовым поясом
+- `kubernetes` - Логи подов Kubernetes
 
-### Databases
-- `mysql` - MySQL error logs
-- `mysql_general` - MySQL general query logs
-- `postgresql` - PostgreSQL logs
-- `elasticsearch` - Elasticsearch logs
+### Базы данных
+- `mysql` - Логи ошибок MySQL
+- `mysql_general` - Общие логи запросов MySQL
+- `postgresql` - Логи PostgreSQL
+- `elasticsearch` - Логи Elasticsearch
 
-### System & Infrastructure
-- `kern` - Kernel/system logs (journalctl, systemd)
-- `syslog` - Traditional syslog (RFC 3164)
-- `syslog_rfc5424` - Modern syslog (RFC 5424)
-- `tskv` - Tab-separated key-value format (default)
+### Система и инфраструктура
+- `kern` - Логи ядра/системы (journalctl, systemd)
+- `syslog` - Традиционный syslog (RFC 3164)
+- `syslog_rfc5424` - Современный syslog (RFC 5424)
+- `tskv` - Формат ключ-значение, разделенный табуляцией (по умолчанию)
 
-### Structured Logs
-- `json` - JSON logs with `timestamp` field
-- `json_time` - JSON logs with `time` field
-- `logstash` - Logstash JSON format
+### Структурированные логи
+- `json` - JSON логи с полем `timestamp`
+- `json_time` - JSON логи с полем `time`
+- `logstash` - Формат JSON Logstash
 
-### Examples
+### Примеры
 
 ```bash
-# Apache access logs
+# Логи доступа Apache
 ttail -n 1h -t apache /var/log/apache2/access.log
 
-# Docker container logs
+# Логи контейнеров Docker
 ttail -n 30m -t docker /var/lib/docker/containers/*/container.log
 
-# Java application logs
+# Логи приложений Java
 ttail -n 15m -l -t java /var/log/myapp/application.log
 
-# Kubernetes pod logs
+# Логи подов Kubernetes
 kubectl logs pod-name | ttail -n 10m -t kubernetes
 
-# System logs
+# Системные логи
 ttail -n 2h -t kern /var/log/kern.log
 ```
 
-## Custom Configuration
+## Пользовательская конфигурация
 
-You can still create custom log formats with a TOML configuration file:
+Вы все еще можете создавать пользовательские форматы логов с помощью файла конфигурации TOML:
 
 ```toml
 [custom_app]
-timeReStr = 'timestamp=(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})'
+timeReStr = 'timestamp=(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2})'
 timeLayout = "2006-01-02T15:04:05"
 bufSize = 16384
 stepsLimit = 1024
 ```
 
-### Configuration Parameters
+### Параметры конфигурации
 
-- `timeReStr`: Regular expression to extract timestamp (first capture group)
-- `timeLayout`: Go time layout for parsing timestamps
-- `bufSize`: Buffer size for file reading (bytes, optional)
-- `stepsLimit`: Maximum steps for backward search (optional)
+- `timeReStr`: Регулярное выражение для извлечения временной метки (первая захватывающая группа)
+- `timeLayout`: Формат времени Go для разбора временных меток
+- `bufSize`: Размер буфера для чтения файла (в байтах, необязательно)
+- `stepsLimit`: Максимальное количество шагов для обратного поиска (необязательно)
 
-## Library Usage
+## Использование в качестве библиотеки
 
 ```go
 package main
@@ -156,19 +157,19 @@ func main() {
     }
     defer file.Close()
 
-    // Create a new TFile instance
+    // Создание нового экземпляра TFile
     tfile := ttail.NewTimeFile(file,
         ttail.WithDuration(5*time.Minute),
         ttail.WithTimeFromLastLine(true),
     )
 
-    // Find the optimal starting position
+    // Нахождение оптимальной начальной позиции
     err = tfile.FindPosition()
     if err != nil {
         panic(err)
     }
 
-    // Copy the relevant portion to stdout
+    // Копирование соответствующей части в stdout
     _, err = tfile.CopyTo(os.Stdout)
     if err != nil {
         panic(err)
@@ -176,110 +177,110 @@ func main() {
 }
 ```
 
-### Advanced Usage
+### Продвинутое использование
 
 ```go
-// Using built-in log types programmatically
+// Программное использование встроенных типов логов
 tfile, err := ttail.NewTFileWithConfig(
     file,
-    "", // empty config file uses built-ins
+    "", // пустой файл конфигурации использует встроенные типы
     "apache",
     10*time.Minute,
     true,
 )
 
-// Using custom options
+// Использование пользовательских опций
 tfile := ttail.NewTimeFile(file,
     ttail.WithDuration(1*time.Hour),
     ttail.WithBufSize(32768),
     ttail.WithStepsLimit(2048),
-    ttail.WithTimeReAsStr(`(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})`),
+    ttail.WithTimeReAsStr(`(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2})`),
     ttail.WithTimeLayout("2006-01-02 15:04:05"),
 )
 ```
 
-## Architecture
+## Архитектура
 
-The modernized ttail is organized into several focused packages:
+Модернизированный ttail организован в несколько специализированных пакетов:
 
-### Core Packages
+### Основные пакеты
 
-- **`internal/config`**: Configuration management and built-in log types
-- **`internal/parser`**: Timestamp parsing and regex handling
-- **`internal/buffer`**: Efficient line buffering and reading
-- **`internal/searcher`**: Time-based binary search implementation
+- **`internal/config`**: Управление конфигурацией и встроенные типы логов
+- **`internal/parser`**: Разбор временных меток и обработка регулярных выражений
+- **`internal/buffer`**: Эффективная буферизация строк и чтение
+- **`internal/searcher`**: Реализация бинарного поиска на основе времени
 
-### Performance Optimizations
+### Оптимизация производительности
 
-1. **Memory Efficiency**:
-   - Reusable buffers to minimize allocations
-   - Configurable buffer sizes for different use cases
-   - Efficient line parsing without unnecessary copying
+1.  **Эффективность по памяти**:
+    -   Многоразовые буферы для минимизации выделений памяти
+    -   Настраиваемые размеры буферов для различных сценариев использования
+    -   Эффективный разбор строк без ненужного копирования
 
-2. **Search Optimization**:
-   - Binary search for large files
-   - Intelligent buffer positioning
-   - Minimal file I/O operations
+2.  **Оптимизация поиска**:
+    -   Бинарный поиск для больших файлов
+    -   Интеллектуальное позиционирование буфера
+    -   Минимальное количество операций ввода-вывода
 
-3. **CPU Efficiency**:
-   - Compiled regex patterns cached
-   - Optimized string operations
-   - Reduced function call overhead
+3.  **Эффективность процессора**:
+    -   Кэширование скомпилированных регулярных выражений
+    -   Оптимизированные операции со строками
+    -   Уменьшение накладных расходов на вызовы функций
 
-## Testing
+## Тестирование
 
-Run the comprehensive test suite:
+Запустите полный набор тестов:
 
 ```bash
-# Run all tests
+# Запустить все тесты
 go test ./...
 
-# Run tests with coverage
+# Запустить тесты с покрытием
 go test -cover ./...
 
-# Run benchmarks
+# Запустить бенчмарки
 go test -bench=. ./...
 
-# Test specific log types
+# Протестировать определенные типы логов
 go test -v ./internal/config -run TestBuiltinLogTypes
 ```
 
-### Benchmark Results
+### Результаты бенчмарков
 
-The modernized version shows significant performance improvements:
+Модернизированная версия показывает значительные улучшения производительности:
 
-- **Memory usage**: 40% reduction in allocations
-- **Search speed**: 60% faster binary search
-- **Throughput**: 25% improvement in data processing
+-   **Использование памяти**: Снижение выделений памяти на 40%
+-   **Скорость поиска**: Бинарный поиск на 60% быстрее
+-   **Пропускная способность**: Улучшение обработки данных на 25%
 
-## Default Log Format
+## Формат логов по умолчанию
 
-By default, ttail expects logs in TSKV (Tab-Separated Key-Value) format:
+По умолчанию ttail ожидает логи в формате TSKV (Tab-Separated Key-Value):
 
 ```
 	timestamp=2023-12-25T10:30:45	level=info	msg=example log entry
 ```
 
-The default regex pattern is: `\ttimestamp=(\d{4}-\d{2}-\d{2}T\d\d:\d\d:\d\d)\t`
+Регулярное выражение по умолчанию: `\ttimestamp=(\d{4}-\d{2}-\d{2}T\d\d:\d\d:\d\d)\t`
 
-## Error Handling
+## Обработка ошибок
 
-ttail gracefully handles various error conditions:
+ttail корректно обрабатывает различные ошибки:
 
-- **File not found**: Clear error message
-- **No timestamps found**: Falls back to copying entire file
-- **Invalid timestamp format**: Skips malformed entries
-- **Large files**: Efficient processing without memory issues
+-   **Файл не найден**: Четкое сообщение об ошибке
+-   **Временные метки не найдены**: Возвращается к копированию всего файла
+-   **Неверный формат временной метки**: Пропускает некорректные записи
+-   **Большие файлы**: Эффективная обработка без проблем с памятью
 
-## Contributing
+## Участие в разработке
 
-1. Fork the repository
-2. Create a feature branch
-3. Add tests for new functionality
-4. Ensure all tests pass
-5. Submit a pull request
+1.  Сделайте форк репозитория
+2.  Создайте ветку для новой функциональности
+3.  Добавьте тесты для новой функциональности
+4.  Убедитесь, что все тесты проходят
+5.  Отправьте pull request
 
-### Development Setup
+### Настройка для разработки
 
 ```bash
 git clone https://github.com/sakateka/ttail.git
@@ -288,20 +289,20 @@ go mod download
 go test ./...
 ```
 
-### Adding New Log Types
+### Добавление новых типов логов
 
-To add a new built-in log type, edit `internal/config/config.go`:
+Чтобы добавить новый встроенный тип лога, отредактируйте `internal/config/config.go`:
 
 ```go
 "myformat": LogType{
-    TimeReStr:  `^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})`,
+    TimeReStr:  `^(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2})`,
     TimeLayout: "2006-01-02 15:04:05",
 },
 ```
 
-Then add tests in `internal/config/builtin_types_test.go`.
+Затем добавьте тесты в `internal/config/builtin_types_test.go`.
 
-## License
+## Лицензия
 
 MIT License
 
@@ -325,19 +326,19 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-## Changelog
+## Журнал изменений
 
-### v2.0.0 (Modernized)
-- Complete code reorganization into focused packages
-- 25+ built-in log format types (no config file needed)
-- Significant performance improvements
-- Enhanced memory efficiency
-- Comprehensive test coverage
-- Backward compatible API
-- Improved error handling
-- Better documentation
+### v2.0.0 (Модернизированная)
+- Полная реорганизация кода в специализированные пакеты
+- 25+ встроенных типов форматов логов (файл конфигурации не нужен)
+- Значительные улучшения производительности
+- Повышенная эффективность использования памяти
+- Всестороннее тестовое покрытие
+- Обратно совместимый API
+- Улучшенная обработка ошибок
+- Улучшенная документация
 
-### v1.0.0 (Original)
-- Basic time-based tailing functionality
-- TSKV format support
-- Configuration file support
+### v1.0.0 (Оригинальная)
+- Базовая функциональность отслеживания по времени
+- Поддержка формата TSKV
+- Поддержка файла конфигурации
