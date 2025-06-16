@@ -7,7 +7,6 @@ A high-performance, memory-efficient log tailing utility that can tail log files
 - **Time-based tailing**: Tail logs from a specific time duration (e.g., last 10 minutes)
 - **Binary search optimization**: Efficiently finds the starting position in large log files
 - **25+ built-in log formats**: No configuration needed for common log types
-- **Interactive TUI**: Beautiful terminal interface for monitoring multiple logs
 - **Memory efficient**: Optimized buffer management for low memory footprint
 - **High performance**: Designed for speed with minimal allocations
 - **Backward compatible**: Maintains API compatibility with the original version
@@ -16,7 +15,6 @@ A high-performance, memory-efficient log tailing utility that can tail log files
 
 ```bash
 go install github.com/sakateka/ttail/cmd/ttail@latest
-go install github.com/sakateka/ttail/cmd/ttail-tui@latest
 ```
 
 Or build from source:
@@ -24,8 +22,7 @@ Or build from source:
 ```bash
 git clone https://github.com/sakateka/ttail.git
 cd ttail
-go build ./cmd/ttail      # Command-line version
-go build ./cmd/ttail-tui  # Interactive TUI version
+go build ./cmd/ttail
 ```
 
 ## Usage
@@ -47,21 +44,6 @@ ttail -n 30s -t custom_format -c /path/to/config.toml /var/log/app.log
 
 # Enable debug output
 ttail -d -n 30s /var/log/app.log
-```
-
-### Interactive TUI
-
-```bash
-# Monitor multiple log files with beautiful TUI
-ttail-tui test-logs/app1.log test-logs/app2.log
-
-# Different log types for different files
-ttail-tui -t tskv app1.log -t java app2.log
-
-# Custom preview window size
-ttail-tui -lines 30 /var/log/*.log
-
-# Navigate with ↑/↓, ENTER to toggle preview, q to quit
 ```
 
 ### Options
