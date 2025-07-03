@@ -46,7 +46,7 @@ func (tp *TimeParser) ParseTime(line []byte) (time.Time, bool) {
 
 	// Use FindSubmatchIndex to avoid allocating submatch slices
 	indices := tp.timeRe.FindSubmatchIndex(line)
-	if indices == nil || len(indices) < 4 {
+	if len(indices) < 4 {
 		return time.Time{}, false // No timestamp found or no capture group
 	}
 
